@@ -1,0 +1,4 @@
+c Teste simples: x1 ou x2 ; x2 ou nao x3
+p cnf 3 2
+1 2 0
+2 -3 0
