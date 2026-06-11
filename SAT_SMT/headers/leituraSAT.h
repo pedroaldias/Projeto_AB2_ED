@@ -1,5 +1,5 @@
-#ifndef leitura_h
-#define leitura_h
+#ifndef leituraSAT_h
+#define leituraSAT_h
 #include <stdbool.h>
 
 /*
@@ -38,7 +38,7 @@ formula* criarFormula();
 
 void inserirClausula(formula *formula, int *literais, int tam);
 
-formula* leArquivo(const char *entrada);
+formula* leArquivoSAT(const char *entrada);
 
 void desalocaFormula(formula *formula);
 

@@ -1,6 +1,6 @@
-#ifndef solucao_h
-#define solucao_h
-#include "leitura.h"
+#ifndef solucaoSAT_h
+#define solucaoSAT_h
+#include "leituraSAT.h"
 #include <stdbool.h>
 
 typedef struct vetorInterpretacoes

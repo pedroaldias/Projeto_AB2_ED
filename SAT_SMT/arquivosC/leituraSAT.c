@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "leitura.h"
+#include "../headers/leituraSAT.h"
 
 formula* criarFormula()
 {
@@ -33,7 +33,7 @@ void inserirClausula(formula *formula, int *literais, int tam)
     }
 }
 
-formula* leArquivo(const char *filename)
+formula* leArquivoSAT(const char *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL) 

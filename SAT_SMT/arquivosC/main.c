@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdbool.h>
-#include "leitura.h"
-#include "solucao.h"
+#include "../headers/leituraSAT.h"
+#include "../headers/solucaoSAT.h"
+#include "../headers/leituraSMT.h"
+#include "../headers/solucaoSMT.h"
+
 
 int main(int argc, char *argv[])
 {   
@@ -12,7 +15,7 @@ int main(int argc, char *argv[])
     }
     else nomeArquivo = "entrada.cnf";
 
-    formula *f = leArquivo(nomeArquivo);
+    formula *f = leArquivoSAT(nomeArquivo);
 
     if(f == NULL)
     {
