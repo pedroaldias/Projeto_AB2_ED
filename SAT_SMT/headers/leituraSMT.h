@@ -29,10 +29,4 @@ typedef struct problemaSMT
 
 problemaSMT* leArquivoSMT(const char *filename);
 
-int checaIntervalo(problemaSMT *smt, vetorInterpretacoes *vetor);
-
-operador inverteOperador(operador op);
-
-void atualizaLimites(int *teto, int *chao, equacao e);
-
 #endif

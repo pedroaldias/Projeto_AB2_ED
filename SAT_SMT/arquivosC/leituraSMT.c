@@ -15,7 +15,7 @@ problemaSMT* leArquivoSMT(const char *filename)
     }
 
     problemaSMT *smt = malloc(sizeof(problemaSMT));
-    smt -> logicaSAT = malloc(sizeof(formula));
+    smt -> logicaSAT = criarFormula();
     char tipo;
 
     while(fscanf(file, " %c", &tipo) == 1)

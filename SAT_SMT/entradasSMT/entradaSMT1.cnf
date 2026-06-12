@@ -1,0 +1,11 @@
+c Caso 1: SAT - exemplo do professor
+c Literal 1: 2x + 1 <= 9
+c Literal 2: 1x - 2 >= 1
+c Literal 3: 1x + 0 <= 4
+p cnf 3 3
+e 1 2 1 <= 9
+e 2 1 -2 >= 1
+e 3 1 0 <= 4
+1 0
+2 0
+3 0

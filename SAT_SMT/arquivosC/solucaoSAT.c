@@ -27,7 +27,7 @@ int checaFormula(formula *f, vetorInterpretacoes *interpretacoes)
         bool clausulaVerdadeira = false;
         bool faltaAtribuicao = false;
 
-        for(int i = 0; i <= atual -> qtdLocalLiterais; i++)
+        for(int i = 0; i < atual -> qtdLocalLiterais; i++)
         {
             int literal = atual -> literais[i];
             int var = abs(literal); //-1 -> 1

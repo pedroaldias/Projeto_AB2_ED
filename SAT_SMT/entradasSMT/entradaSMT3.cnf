@@ -1,0 +1,10 @@
+c Caso 3: SAT - logica nega literal impossivel
+c Literal 1: 1x + 0 >= 2
+c Literal 2: 1x + 0 >= 99
+c Clausula 1: literal 1 obrigatorio
+c Clausula 2: literal 2 obrigatorio ser falso
+p cnf 2 2
+e 1 1 0 >= 2
+e 2 1 0 >= 99
+1 0
+-2 0

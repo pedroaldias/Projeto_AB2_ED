@@ -12,4 +12,8 @@ void atualizaLimites(int *teto, int *chao, equacao e);
 
 arvore *smtSolver(problemaSMT *smt, vetorInterpretacoes *v, int variavel);
 
+void desalocaSMT(problemaSMT *smt);
+
+void printArvoreSMT(arvore *raiz, int nivel, char direcao, problemaSMT *smt, int indicePai);
+
 #endif
