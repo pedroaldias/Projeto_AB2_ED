@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "leitura.h"
-#include "solucao.h"
+#include "../headers/leituraSAT.h"
+#include "../headers/solucaoSAT.h"
 #include <stdbool.h>
 
 vetorInterpretacoes* criarVetorInterpretacoes(formula *f)
@@ -27,10 +27,10 @@ int checaFormula(formula *f, vetorInterpretacoes *interpretacoes)
         bool clausulaVerdadeira = false;
         bool faltaAtribuicao = false;
 
-        for(int i = 0; i <= atual -> qtdLocalLiterais; i++)
+        for(int i = 0; i < atual -> qtdLocalLiterais; i++)
         {
             int literal = atual -> literais[i];
-            int var = abs(literal);
+            int var = abs(literal); //-1 -> 1
             int valorAtribuido = interpretacoes -> vetor[var];
 
             if(valorAtribuido == 0) faltaAtribuicao = true;

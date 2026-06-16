@@ -1,0 +1,6 @@
+c Caso 4: UNSAT logico - x1 true e false ao mesmo tempo
+c Literal 1: 1x + 0 <= 10 (matematicamente sempre ok)
+p cnf 1 2
+e 1 1 0 <= 10
+1 0
+-1 0

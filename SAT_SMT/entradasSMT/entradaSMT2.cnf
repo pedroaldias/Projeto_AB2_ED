@@ -1,0 +1,8 @@
+c Caso 2: UNSAT - x >= 5 e x <= 3 ao mesmo tempo
+c Literal 1: 1x + 0 >= 5
+c Literal 2: 1x + 0 <= 3
+p cnf 2 2
+e 1 1 0 >= 5
+e 2 1 0 <= 3
+1 0
+2 0
