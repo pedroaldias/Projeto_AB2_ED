@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "huffman_tree.h"
-#include "heap.h"
+#include "../Headers/huffman_tree.h"
+#include "../Headers/heap.h"
 
 // compara a frequencai entre dois nós do tipo NodeHuffman
 int comparar_nos_huffman(void *a, void *b)

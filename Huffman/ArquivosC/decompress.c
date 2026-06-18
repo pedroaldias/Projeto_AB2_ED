@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "decompress.h"
-#include "huffman_tree.h"
-#include "bitio.h"
-#include "header.h"
+#include "../Headers/decompress.h"
+#include "../Headers/huffman_tree.h"
+#include "../Headers/bitio.h"
+#include "../Headers/header.h"
 
 struct decompressor
 {

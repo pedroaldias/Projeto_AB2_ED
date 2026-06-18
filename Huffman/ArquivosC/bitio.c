@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "bitio.h"
+#include "../Headers/bitio.h"
 
 struct bit_file
 {

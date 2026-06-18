@@ -1,8 +1,8 @@
     #include <stdio.h>
     #include <stdlib.h>
-    #include "header.h"
-    #include "huffman_tree.h"
-    #include "bitio.h"
+    #include "../Headers/header.h"
+    #include "../Headers/huffman_tree.h"
+    #include "../Headers/bitio.h"
 
     /*
     * Formato do arquivo .huff

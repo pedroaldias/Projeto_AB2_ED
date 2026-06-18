@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "compress.h"
-#include "decompress.h"
+#include "../Headers/compress.h"
+#include "../Headers/decompress.h"
 
 /**
  * @brief Exibe as instruções de uso correto do programa.
