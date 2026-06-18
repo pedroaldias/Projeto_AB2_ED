@@ -4,7 +4,7 @@ compila o codigo
 gcc ArquivosC/main.c ArquivosC/compress.c ArquivosC/decompress.c ArquivosC/header.c ArquivosC/bitio.c ArquivosC/heap.c ArquivosC/huffman_tree.c -IHeaders -o huffman
 
 executa o código compactando
-./huffman_exec -c AlgebraLinearLivro.pdf
+.\huffman.exe -c AlgebraLinearLivro.pdf
 
 executa o código descompactando
-./huffman_exec -d AlgebraLinearLivro.pdf.huff
+.\huffman_exec -d AlgebraLinearLivro.pdf.huff
