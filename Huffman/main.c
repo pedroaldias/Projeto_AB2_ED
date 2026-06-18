@@ -42,27 +42,16 @@ int main(int argc, char *argv[])
     // Modo de Compressão
     if(strcmp(opcao, "-c") == 0)
     {
-        // localiza o ultimo ponto para isolar o nome
-        char *ultimo_ponto = strrchr(origem, '.');
-        int comprimento_base = strlen(origem);
-
-        if(ultimo_ponto != NULL)
-        {
-            comprimento_base = ultimo_ponto - origem;
-        }
-
-        // Geração automática alocando espaço para "nome_do_aquivo" + ".huff" + '\0'
-        int tam_destino = comprimento_base + 6;
-        destino = (char *)malloc(tam_destino*sizeof(char));
+        // Geração automática: apenas adiciona ".huff" ao nome completo (com extensão original)
+        int tam_destino = strlen(origem) + 6; // ".huff" + '\0'
+        destino = (char *)malloc(tam_destino * sizeof(char));
         if(destino == NULL)
         {
             printf("Erro de alocacao de memoria ao gerar nome do arquivo destino\n");
             return 1;
         }
-
-        // isola o noome base e monta o arquivo final como .huff
-        strncpy(destino, origem, comprimento_base);
-        destino[comprimento_base] = '\0';
+    
+        strcpy(destino, origem);
         strcat(destino, ".huff");
         printf("Iniciando compressao do arquivo: %s -> %s\n", origem, destino);
 
