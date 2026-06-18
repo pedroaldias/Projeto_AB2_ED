@@ -4,16 +4,7 @@ compila o codigo
 gcc ArquivosC/main.c ArquivosC/compress.c ArquivosC/decompress.c ArquivosC/header.c ArquivosC/bitio.c ArquivosC/heap.c ArquivosC/huffman_tree.c -IHeaders -o huffman
 
 executa o código compactando
-./huffman_exec -c algebralivro.pdf
+./huffman_exec -c AlgebraLinearLivro.pdf
 
 executa o código descompactando
-./huffman_exec -d algebralivro.huff
-
-compara o resultados se estão iguais
-cmd /c "fc /b algebralivro.pdf algebralivro"
-
-renomeia o arquivo de saída para seu tipo original
-Rename-Item algebralivro algebralivro_restaurado.pdf
-
-abre o arquivo de saída no terminal
-start algebralivro_restaurado.pdf
+./huffman_exec -d AlgebraLinearLivro.pdf.huff
