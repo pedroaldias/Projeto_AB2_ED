@@ -4,7 +4,9 @@ compila o codigo
 gcc ArquivosC/main.c ArquivosC/compress.c ArquivosC/decompress.c ArquivosC/header.c ArquivosC/bitio.c ArquivosC/heap.c ArquivosC/huffman_tree.c -IHeaders -o huffman
 
 executa o código compactando
-.\huffman.exe -c AlgebraLinearLivro.pdf
+.\huffman.exe -c "Arquivos_de_Teste\AlgebraLinearLivro.pdf"
 
 executa o código descompactando
-.\huffman_exec -d AlgebraLinearLivro.pdf.huff
+.\huffman.exe -d "Arquivos_de_Teste\AlgebraLinearLivro.pdf.huff"
+
+Instale a extensão vscode-pdf do autor tomoki1207 para abrir pdf no vscode

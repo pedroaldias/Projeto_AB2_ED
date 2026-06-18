@@ -18,7 +18,7 @@
 /**
  * @brief Exibe as instruções de uso correto do programa.
  */
-void exibir_ajuda(const char *nome_arquivo) //exibi uma tela de ajuda de como usar o programa caso acha erro
+void exibir_ajuda(const char *nome_arquivo)
 {
     printf("Uso incorreto dos argumentos!\n");
     printf("Modo de Uso:\n");
@@ -28,7 +28,6 @@ void exibir_ajuda(const char *nome_arquivo) //exibi uma tela de ajuda de como us
 
 int main(int argc, char *argv[])
 {
-    // codigo aceita exatamente 3 argumentos, o executavel, a opcao de compactar ou descompactar e o arquivo de origem
     if(argc != 3)
     {
         exibir_ajuda(argv[0]);
@@ -42,20 +41,18 @@ int main(int argc, char *argv[])
     // Modo de Compressão
     if(strcmp(opcao, "-c") == 0)
     {
-        // Geração automática: apenas adiciona ".huff" ao nome completo (com extensão original)
-        int tam_destino = strlen(origem) + 6; // ".huff" + '\0'
+        int tam_destino = strlen(origem) + 6;
         destino = (char *)malloc(tam_destino * sizeof(char));
         if(destino == NULL)
         {
             printf("Erro de alocacao de memoria ao gerar nome do arquivo destino\n");
             return 1;
         }
-    
+
         strcpy(destino, origem);
         strcat(destino, ".huff");
         printf("Iniciando compressao do arquivo: %s -> %s\n", origem, destino);
 
-        // Chama o compressor ADT
         Compressor *c = criar_compressor(origem, destino);
         if(c == NULL)
         {
@@ -82,25 +79,32 @@ int main(int argc, char *argv[])
     {
         int tam_origem = strlen(origem);
 
-        // verifica se o arquivo de fato termina com .huff como medida de segurança para descompactar
         if(tam_origem > 5 && strcmp(&origem[tam_origem-5], ".huff") == 0)
         {
-            //removemos o .huff do final do nome do nosso arquivo alocando uma string menor
-            int tam_destino = (tam_origem - 5) + 1; // tira os 5 caracteres do ".huff" e adiciona 1 '\0'
-            destino = (char *)malloc(tam_destino*sizeof(char));
+            // Isola só o nome do arquivo sem o caminho
+            char *ultimo_separador = strrchr(origem, '\\');
+            if(ultimo_separador == NULL)
+                ultimo_separador = strrchr(origem, '/');
+
+            char *nome_arquivo = (ultimo_separador != NULL) ? ultimo_separador + 1 : origem;
+
+            int tam_nome = strlen(nome_arquivo) - 5; // remove o .huff
+            const char *pasta_saida = "Arquivos_resultado\\";
+            int tam_destino = strlen(pasta_saida) + tam_nome + 1;
+
+            destino = (char *)malloc(tam_destino * sizeof(char));
             if(destino == NULL)
             {
                 printf("Erro de alocacao de memoria ao gerar nome do arquivo destino\n");
                 return 1;
             }
-            strncpy(destino, origem, tam_origem - 5); // função que copia um pedaço de uma string em outra mas com um limite de caracteres em relaçao ao tamanho e nao indice
-            destino[tam_origem - 5] = '\0';
+
+            strcpy(destino, pasta_saida);
+            strncat(destino, nome_arquivo, tam_nome);
+            destino[strlen(pasta_saida) + tam_nome] = '\0';
         }
         else
         {
-            // Fallback caso o usuario passe o nome de um arquivo que nao é um .huff, sendo uma medida de segurança caso isso ocorra
-            // esse Fallback permite que caso o arquivo seja um .huff mesmo que nao tenha escrito .huff ele segue no fluxo normal do codigo e so para caso nao seja um arquivo .huff realmente
-            // pois ele ira falhar na leitura do cabeçalho ou formando uma arvore totalmente errada e parando o codigo de maneira segura evitando crash
             int tam_destino = tam_origem + 12;
             destino = (char *)malloc(tam_destino*sizeof(char));
             if(destino == NULL)
@@ -110,12 +114,10 @@ int main(int argc, char *argv[])
             }
 
             snprintf(destino, tam_destino, "%s.extracted", origem);
-            // função para jogar um texto dentro de uma variavel destino passando tamanho maximo, sendo apenas com a função de guarda nao printando nada na tela
         }
 
         printf("Iniciando descompressao do arquivo: %s -> %s\n", origem, destino);
 
-        // Chama o Descompressor ADT
         Decompressor *d = criar_decompressor(origem, destino);
         if(d == NULL)
         {
@@ -137,7 +139,6 @@ int main(int argc, char *argv[])
         free(destino);
     }
 
-    // caso seja selecionado uma opção invalida
     else
     {
         printf("Opcao '%s' invalida!\n", opcao);
