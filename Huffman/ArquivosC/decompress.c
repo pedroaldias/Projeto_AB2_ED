@@ -72,7 +72,7 @@ int executar_decompressao(Decompressor *d)
         return 0;
     }
 
-    // PASSO 4: Abrir o arquivo de destino para gravar os bytes de origem (wb, criando ou sobreewscrevendo no arquivo destino os bytes do compactado)
+    // PASSO 4: Abrir o arquivo de destino para gravar os bytes do arquivo de origem (wb, criando ou sobreescrevendo no arquivo destino os bytes do compactado)
     FILE *f_destino = fopen(d->destino, "wb");
     if(f_destino == NULL) // medida de proteção contra arquivos corrompidos
     {
@@ -98,17 +98,17 @@ int executar_decompressao(Decompressor *d)
         bits_lidos++; // contando de bit em bit
 
         // Se o bit for 0, vai para esquerda se for 1 vai para direita caminhando na arvore ate encontrar uma folha e nao um no interno
-        if(atual->dir == NULL) atual = atual->esq; // froça esquerda se a direita nao existe, solucionando o caso especial de um unico byte distinto
+        if(atual->dir == NULL) atual = atual->esq; // força esquerda se a direita nao existe, solucionando o caso especial de um unico byte distinto
         else if(bit == 1)
         {
             atual = atual->dir;
         }
-        else
+        else // bit == 0
         {
             atual = atual->esq;
         }
 
-        // Se encontramos um nó foilha quer dizer que achamos um byte original do texto antes da compactação
+        // Se encontramos um nó folha quer dizer que achamos um byte original do texto antes da compactação
         if(atual->esq == NULL && atual->dir == NULL) // essa linha pode causar segmetaion fault dependendo de como é tratado arquivos com um unico byte distinto
         {
             fputc(atual->caractere, f_destino); // coloca o caractere do no folha no arquivo de destino apos descompatar

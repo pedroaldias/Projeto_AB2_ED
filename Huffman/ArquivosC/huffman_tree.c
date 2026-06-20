@@ -35,7 +35,7 @@ static NodeHuffman *criar_no(unsigned char caractere, int frequencia)
 }
 
 // função que ira construir nossa arvore huffman propriamente dita
-NodeHuffman *construir_a_arvore(const int frequencias[]) // possivel bug nessa função pela questao de como é aboradado o no interno @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+NodeHuffman *construir_a_arvore(const int frequencias[])
 {
     // 1. primeiro quantos caracteres/bytes distintos possuimos , todo tipo de arquivo é formado por umas combinação ou nao de no maximo 256 bytes distintos
     // sao 256 bytes distintos no maximo para todo arquivo pois fisicamente o computador so le 1 byte por vez formado por 8 bits que por sua vez possuem 2 estados possiveis logo
@@ -56,6 +56,7 @@ NodeHuffman *construir_a_arvore(const int frequencias[]) // possivel bug nessa f
     {
         if(frequencias[i] > 0)
         {
+            // 1, 00000001
             // crio um no do tipo huffman passando o 
 
             // passo o i como seu equivalente em 1 byte no codigo ascii e isso nao viola o huffman essa operação é apenas para o codigo 

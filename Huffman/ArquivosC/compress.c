@@ -92,7 +92,7 @@ int executar_compressao(Compressor *c)
     escrever_header(h, f_destino); // escreve no nosso arquivo de bytes o header
     destruir_header(h); // agora que ja escrevemos o header no nosso arquivo de bytes podemos apagar ele da memoria
 
-    // PASSO 4: Voltar o ponteiro do arquivo original para o seu início
+    // Voltar o ponteiro do arquivo original para o seu início
     rewind(f_origem);
 
     // PASSO 5: Ler o arquivo original byte a byte e gravar no arquivo de bytes os bits correspondentes

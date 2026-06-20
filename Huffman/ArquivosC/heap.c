@@ -46,6 +46,7 @@ static void sift_up(Heap *h, int i)
 {
     while(i > 0)
     {
+        // pai = 8, fiho = 3 
         int pai = (i - 1)/ 2; // encontra o pai do nó atual
 
         // se o filho (nó atual) tiver menor frequencia que o pai eles trocam
@@ -63,8 +64,8 @@ static void sift_up(Heap *h, int i)
 static void sift_down(Heap *h, int i)
 {
     int menor = i;
-    int esq   = (i*2) + 1;
-    int dir   = (i*2) + 2;
+    int esq   = (i*2) + 1; // filho a esquerda de um no
+    int dir   = (i*2) + 2; // filho a direita de um no
 
     // testo se o indice a esquerda existe na heap e se ele tem menor frequencia do que o atual indice menor
     if(esq < h->tamanho && h->comparar(h->dados[esq], h->dados[menor]) < 0)

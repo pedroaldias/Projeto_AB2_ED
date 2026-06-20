@@ -51,7 +51,7 @@
 
     // função a ser a primeira chamda na compactação, onde escrevemos nosso header no arquivo compactado onde inicialmente separado os bits de lixo e os bits de arvore e
     // juntamos em uma variavel e inserimos inicialmente essas informações, em ordem, no header compactado logo dps gravamos todos os bytes da arvore de maneira serializada
-    void escrever_header(Header *h, BitFile *bf)
+    void escrever_header(Header *h, BitFile *bf) // apenas para compressao
     {
         if(h == NULL || bf == NULL) return;
 
@@ -81,7 +81,7 @@
 
     // função que sera a primeira aser chamada na descompactação onde eu consigo a partir dela lendo os 2 bytes iniciais pega o numero de bits lixo e o tamanho da arvore e logo apos
     // eu leio todos os bytes que representam a arvore serializada em pre-ordem e reconstruo minha arvore a partir de um buffer que recebeu essa serialização
-    NodeHuffman *ler_header(BitFile *bf, int *lixo_out, int *tam_arvore_out)
+    NodeHuffman *ler_header(BitFile *bf, int *lixo_out, int *tam_arvore_out) // apenas para descompressao
     {
         if(bf == NULL) return NULL; // medida de segurança contra arquivos corrompidos
 
