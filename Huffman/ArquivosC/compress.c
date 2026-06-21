@@ -77,11 +77,13 @@ int executar_compressao(Compressor *c)
     // pois se eu nao preciso completar nada pelo total de bits preencher todos os bytes deveria ser 0 o numero de lixo e não 8, por isso o resto 8 dnv
     int lixo = (8 - (int)(total_bits % 8)) % 8; 
 
-    // PASSO 4: abrir o arquivo destino em modo "wb", criar e gravar o header no arquivo de destino
-    BitFile *f_destino = open_bit_file(c->destino, "wb"); // abrimos nosso arquivo de bytes como file e dps fechamos para abrir como BitFile
-    if(f_destino == NULL)
+    // PASSO 4: [ALTERADO] abrir o arquivo destino como FILE* normal para gravar o cabecalho em modo byte puro
+    // conforme o formato do professor, o cabecalho e a arvore sao gravados diretamente como bytes
+    // somente os dados comprimidos usam o mecanismo bit a bit do BitFile
+    FILE *f_saida = fopen(c->destino, "wb");
+    if(f_saida == NULL)
     {
-        // limpeza de emergencia pois n foi possivel criar o arquivo de bytes
+        // limpeza de emergencia pois nao foi possivel criar o arquivo de saida
         liberar_dicionario(dicionario);
         destruir_arvore_huffman(arvore_huffman);
         fclose(f_origem);
@@ -89,8 +91,20 @@ int executar_compressao(Compressor *c)
     }
 
     Header *h = criar_header(arvore_huffman, lixo); // cria o nosso header
-    escrever_header(h, f_destino); // escreve no nosso arquivo de bytes o header
-    destruir_header(h); // agora que ja escrevemos o header no nosso arquivo de bytes podemos apagar ele da memoria
+    escrever_header(h, f_saida); // [ALTERADO] passa FILE* diretamente, grava cabecalho em modo byte puro
+    destruir_header(h); // agora que ja escrevemos o header no nosso arquivo podemos apagar ele da memoria
+
+    // [ALTERADO] envolve o FILE* ja aberto em um BitFile para gravar os dados comprimidos bit a bit
+    // dessa forma o cabecalho fica em modo byte e os dados ficam em modo bit, sem abrir dois arquivos
+    BitFile *f_destino = wrap_bit_file(f_saida, "wb");
+    if(f_destino == NULL)
+    {
+        liberar_dicionario(dicionario);
+        destruir_arvore_huffman(arvore_huffman);
+        fclose(f_origem);
+        fclose(f_saida);
+        return 0;
+    }
 
     // Voltar o ponteiro do arquivo original para o seu início
     rewind(f_origem);
@@ -115,7 +129,9 @@ int executar_compressao(Compressor *c)
     }
 
     // PASSO 6: fechar os arquivos e liberar toda memória utilizada
-    close_bit_file(f_destino); // O close_bit_file faz o flush automatico nos ultimos bits caso sobre algum bit no buffer para ser introduzido no arquivo de byte
+    // o close_bit_file faz o flush automatico nos ultimos bits caso sobre algum bit no buffer
+    // e tambem fecha o f_saida pois o wrap_bit_file compartilha o mesmo FILE*
+    close_bit_file(f_destino);
     fclose(f_origem);
     liberar_dicionario(dicionario);
     destruir_arvore_huffman(arvore_huffman);

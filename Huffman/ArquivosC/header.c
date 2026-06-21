@@ -1,135 +1,132 @@
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include "../Headers/header.h"
-    #include "../Headers/huffman_tree.h"
-    #include "../Headers/bitio.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "../Headers/header.h"
+#include "../Headers/huffman_tree.h"
+#include "../Headers/bitio.h"
 
-    /*
-    * Formato do arquivo .huff
-    *
-    * Byte 0 e 1 (16 bits):
-    *   bit 15 ao 13 = quantidade de bits de lixo no último byte (0-7)
-    *   bit 12 ao 0  = tamanho da árvore serializada em bytes (0-8191)
-    *
-    * Byte 2 até (2 + tamanho_arvore - 1):
-    *   bytes da árvore em pré-ordem conforme serializar_arvore()
-    *
-    * Bytes restantes:
-    *   dados comprimidos, o último byte pode ter bits de lixo no final
-    */
+/*
+* Formato do arquivo .huff (conforme especificacao do professor)
+*
+* Byte 0 e 1 (16 bits gravados como 2 bytes normais via fputc):
+*   bits 7..5 do byte 0 = quantidade de bits de lixo no último byte (0-7)
+*   bits 4..0 do byte 0 + byte 1 completo = tamanho da árvore serializada (13 bits)
+*
+* Byte 2 até (2 + tamanho_arvore - 1):
+*   bytes da árvore em pré-ordem conforme serializar_arvore()
+*   gravados diretamente via fputc, sem empacotamento bit a bit
+*
+* Bytes restantes:
+*   dados comprimidos bit a bit, o último byte pode ter bits de lixo no final
+*/
 
-    /* tamanho máximo do buffer de serialização da árvore:
-    * pior caso: 256 folhas, cada folha = 2 bytes ('\' + símbolo)
-    * cada nó interno = 1 byte ('*'), máximo 255 nós internos, 255 pois é o caminho maximo que um no interno pode ter ate uma folha
-    * total máximo: 256*2 + 255 = 767 bytes — usamos 1024 com folga */
-    #define TAM_MAX_ARVORE 1024
+/* tamanho máximo do buffer de serialização da árvore:
+* pior caso: 256 folhas, cada folha = 2 bytes ('\' + símbolo) apenas para * e \
+* cada nó interno = 1 byte ('*'), máximo 255 nós internos
+* total máximo: 256*2 + 255 = 767 bytes — usamos 1024 com folga */
+#define TAM_MAX_ARVORE 1024
 
-    struct header
+struct header
+{
+    int lixo;                                    // quantidade de bits lixo no ultimo byte
+    int tamanho_arvore;                          // tamanho de bytes totais da arvore serializada(linear)
+    unsigned char arvore_buffer[TAM_MAX_ARVORE]; // bytes da arvore serializados guardado em forma de pre-ordem, Ex: *\*\AB, guardando as representaçoes dos simbolos dos bytes e sua sequencia
+};
+
+// cria um header e serializa a arvore linearmente obtendo o tamanho da arvore em relaçao a quantidade total de bytes representados nela, essa função precisa que passe o numero de lixo na arvore
+Header *criar_header(NodeHuffman *raiz, int lixo)
+{
+    if(raiz == NULL) return NULL;
+
+    Header *h = (Header *)malloc(sizeof(Header));
+    if(h == NULL) return NULL;
+
+    h->lixo = lixo;
+
+    // serializa a arvore no buffer interno mapeando-a linearmente
+    int pos = 0;
+    serializar_arvore(raiz, h->arvore_buffer, &pos);
+    h->tamanho_arvore = pos;
+
+    return h;
+}
+
+// [ALTERADO] função a ser a primeira chamada na compactação, onde escrevemos nosso header no arquivo compactado
+// agora grava os 2 bytes do cabecalho e os bytes da arvore diretamente via fputc (modo byte puro)
+// conforme o formato do professor: byte1 = (lixo << 5) | (tam_arvore >> 8), byte2 = tam_arvore & 0xFF
+// seguido dos bytes da arvore serializada diretamente, sem empacotamento bit a bit
+void escrever_header(Header *h, FILE *f) // [ALTERADO] recebe FILE* em vez de BitFile*
+{
+    if(h == NULL || f == NULL) return;
+
+    // monta os 2 bytes do cabecalho usando mascaras de bit conforme especificacao do professor
+    // byte1: os 3 bits mais significativos guardam o lixo, os 5 menos guardam os bits altos do tamanho
+    // byte2: guarda os 8 bits baixos do tamanho da arvore
+    unsigned char byte1 = (unsigned char)((h->lixo << 5) | (h->tamanho_arvore >> 8));
+    unsigned char byte2 = (unsigned char)(h->tamanho_arvore & 0xFF);
+
+    fputc(byte1, f); // grava o 1o byte do cabecalho diretamente em modo byte
+    fputc(byte2, f); // grava o 2o byte do cabecalho diretamente em modo byte
+
+    // grava todos os bytes da arvore serializada diretamente via fputc, sem empacotamento bit a bit
+    for(int i = 0; i < h->tamanho_arvore; i++)
     {
-        int lixo;                                    // quantidade de bits lixo no ultimo byte
-        int tamanho_arvore;                          // tamanho de bytes totais, sendo para o caractere de simbolo com \ e A por exemplo contando como dois caracteres, da arvore serializada(linear)
-        unsigned char arvore_buffer[TAM_MAX_ARVORE]; // bytes da arvore serializados guardado em forma de pre-ordem, Ex: *\a\b, guardando as representaçoes dos simbolos dos bytes e sua sequencia
-    };
+        fputc(h->arvore_buffer[i], f);
+    }
+}
 
-    // cria um header e serializa a arvore linearmente obtendo o tamanho da arvore em relaçao a quantidade total de bytes representados nela, essa função precisa que passe o numero de lixo na arvore
-    Header *criar_header(NodeHuffman *raiz, int lixo)
+// [ALTERADO] função que sera a primeira a ser chamada na descompactação
+// agora le os 2 bytes do cabecalho e os bytes da arvore diretamente via fgetc (modo byte puro)
+// obtem o numero de bits lixo e o tamanho da arvore e logo apos
+// le todos os bytes que representam a arvore serializada em pre-ordem e reconstroi a arvore
+NodeHuffman *ler_header(BitFile *bf, int *lixo_out, int *tam_arvore_out) // assinatura mantida para nao alterar decompress.c
+{
+    if(bf == NULL) return NULL;
+
+    // [ALTERADO] acessa o FILE* interno do BitFile para ler o cabecalho em modo byte puro
+    // o BitFile continua sendo usado para a leitura bit a bit dos dados apos o cabecalho
+    FILE *f = get_arquivo(bf);
+    if(f == NULL) return NULL;
+
+    // le os 2 bytes do cabecalho diretamente via fgetc, conforme formato do professor
+    int b1 = fgetc(f);
+    int b2 = fgetc(f);
+    if(b1 == EOF || b2 == EOF) return NULL; // medida de seguranca contra arquivos corrompidos
+
+    // extrai o lixo dos 3 bits mais significativos do byte1
+    *lixo_out = (b1 >> 5) & 0x07;
+
+    // extrai o tamanho da arvore: 5 bits baixos do byte1 mais os 8 bits do byte2
+    int tamanho_arvore = ((b1 & 0x1F) << 8) | (b2 & 0xFF);
+    if(tamanho_arvore == 0) return NULL;
+    *tam_arvore_out = tamanho_arvore; // armazena o tamanho da arvore para uso no decompress.c
+
+    // [ALTERADO] le os bytes da arvore serializada diretamente via fgetc, sem leitura bit a bit
+    unsigned char *buf = (unsigned char *)malloc(tamanho_arvore * sizeof(unsigned char));
+    if(buf == NULL) return NULL;
+
+    for(int i = 0; i < tamanho_arvore; i++)
     {
-        if(raiz == NULL) return NULL;
-
-        Header *h = (Header *)malloc(sizeof(Header));
-        if(h == NULL) return NULL;
-
-        h->lixo = lixo;
-
-        // serializa a arvore no buffer interno mapeando-a linearmente
-        int pos = 0;
-        serializar_arvore(raiz, h->arvore_buffer, &pos);
-        h->tamanho_arvore = pos;
-
-        return h;
+        int c = fgetc(f);
+        if(c == EOF)
+        {
+            free(buf);
+            return NULL; // medida de seguranca contra arquivos corrompidos
+        }
+        buf[i] = (unsigned char)c;
     }
 
-    // função a ser a primeira chamda na compactação, onde escrevemos nosso header no arquivo compactado onde inicialmente separado os bits de lixo e os bits de arvore e
-    // juntamos em uma variavel e inserimos inicialmente essas informações, em ordem, no header compactado logo dps gravamos todos os bytes da arvore de maneira serializada
-    void escrever_header(Header *h, BitFile *bf) // apenas para compressao
-    {
-        if(h == NULL || bf == NULL) return;
+    // reconstruindo a arvore a partir do buffer que representa ela serializada linearmente em pre-ordem
+    // apos esse ponto o BitFile esta posicionado no primeiro byte dos dados comprimidos
+    // e o read_bit ja pode ser usado normalmente pois o FILE* esta no lugar certo
+    int pos = 0;
+    NodeHuffman *raiz = desserializar_arvore(buf, &pos, tamanho_arvore);
+    free(buf); // agora que ja reconstrui a arvore nao preciso mais dela
 
-        // usamos operações bit wise or e and com mascara de bit para capturar exatamente o numero binario de 16 bits que desejamos
-        // faz um bit shift no inteiro de lixo 13 casas para a esquerda e retornar para word o resultado da comparação bit a bit com 0b111,
-        // isolando o resultado desejado nas 3 primeiras potencias mais significativa dos dois bytes de word
-        // apos isso realzia um bit wise or com o resultado da operação AND bit a bit do tamanho da arvore com 0b1111111111111
-        // desse modo capturamos todos os 1's e 0's e juntamos no unsigned short(2 bytes) de word juntando os dois pedaços pelo bitwise or
-        // o bit shift em h->lixo nao é nos bits de h->lixo é pra posicionar os bits dele nos 3 primeiros de word
-        unsigned short word = ((unsigned short)(h->lixo & 0b111) << 13) | ((unsigned short)(h->tamanho_arvore & 0b1111111111111)); // unsigned chart tem um espaço para 2 bytes(16 bits)
+    return raiz;
+}
 
-        // escrevemos os 16 bits diretamente no nosso aquivo de bytes compactado do mais significativo para o menos
-        for(int i = 15; i >= 0; i--)
-        {
-            write_bit(bf, (word >> i) & 1); // escrevemo bit a bit do mais significativo pro menos mandando sem 0 ou 1 pela mascara de bit com 1
-        }
-
-        // escrevemos os bytes da nossa arvore serializada bit a bit atraves do write_bit no nosso arquivo de bytes compactado
-        for(int i = 0; i < h->tamanho_arvore; i++)
-        {
-            for(int bit = 7; bit >= 0; bit--)
-            {
-                write_bit(bf, (h->arvore_buffer[i] >> bit) & 1); // escrevemos bit a bit cada byte, de todos os simbolos, que representa nossa arvore serializada
-            }
-        }
-    }
-
-    // função que sera a primeira aser chamada na descompactação onde eu consigo a partir dela lendo os 2 bytes iniciais pega o numero de bits lixo e o tamanho da arvore e logo apos
-    // eu leio todos os bytes que representam a arvore serializada em pre-ordem e reconstruo minha arvore a partir de um buffer que recebeu essa serialização
-    NodeHuffman *ler_header(BitFile *bf, int *lixo_out, int *tam_arvore_out) // apenas para descompressao
-    {
-        if(bf == NULL) return NULL; // medida de segurança contra arquivos corrompidos
-
-        // lê os 16 bits iniciais do nosso header que contem o numero de lixos e o tamanho da arvore
-        unsigned short word = 0;
-        for(int i = 15; i >= 0; i--)
-        {
-            int b = read_bit(bf);
-            if(b == -1) return NULL; // medida de segurança contra arquivos corrompidos
-            word |= ((unsigned short)b << i); // colocamos os bits lidos do arquivo de byte do mais significativo pro menos
-        }
-
-        *lixo_out = (word >> 13) & 0b111; // posiciona os 3 bits mais significativo, com o numero de bits lixo, no 3 menos significativos dos 16 para comparar bit wise and com 111
-        int tamanho_arvore = (word) & 0b1111111111111; // comparar bit wise and com os valor dos 13 bits menos significativo, isolando o valor do tamanho da arvore
-        if(tamanho_arvore == 0) return NULL;
-        *tam_arvore_out = tamanho_arvore; // obtenho e armazeno o tamanho da arvore
-
-
-        // Lendo os bytes da arvore serializados, seus simbolos em bytes unicos
-        unsigned char *buf = (unsigned char *)malloc(tamanho_arvore*sizeof(unsigned char)); // aloca espaço suficiente para ler todos os simbolos da arvore em bytes
-        if(buf == NULL) return NULL;
-
-        for(int i = 0; i < tamanho_arvore; i++)
-        {
-            unsigned char byte = 0;
-            for(int bit = 7; bit >= 0; bit--)
-            {
-                int b = read_bit(bf);
-                if(b == -1)
-                {
-                    free(buf);
-                    return NULL; // medida de segurança contra arquivos corrompidos
-                } 
-                byte |= ((unsigned char)b << bit); // colocamos os bits lidos do mais significativo para o menos e depois armazenamos o byte do simbolo no buf[i]
-            }
-            buf[i] = byte;
-        }
-
-        // reconstruindo a arvore a partir do buffer que representa ela serializada linearmente em pre-ordem
-        int pos = 0;
-        NodeHuffman *raiz = desserializar_arvore(buf, &pos, tamanho_arvore);
-        free(buf); // agora que ja reconstrui a arvore nao preciso mais dela
-
-        return raiz;
-    }
-
-    // função para apagar apenas a estrutura do header sem apagar os dados usados
-    void destruir_header(Header *h)
-    {
-        if(h != NULL) free(h);
-    }
+// função para apagar apenas a estrutura do header sem apagar os dados usados
+void destruir_header(Header *h)
+{
+    if(h != NULL) free(h);
+}

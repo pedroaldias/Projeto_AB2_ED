@@ -16,7 +16,25 @@ typedef struct bit_file BitFile; // struct opaca assim so tem acesso as propried
  * @param modo String determinando o modo ("rb" para leitura biária, "wb" para escrita binária).
  * @return BitFile* Ponteiro para a estrutura de controle criada, ou NULL em caso de erro.
  */
-BitFile* open_bit_file(const char *nome_arquivo, const char *modo); // abre um arquivo para ler os bits dentro ou para escrever bits nesse arquivo
+BitFile *open_bit_file(const char *nome_arquivo, const char *modo); // abre um arquivo para ler os bits dentro ou para escrever bits nesse arquivo
+
+/**
+ * @brief [NOVO] Envolve um FILE* já aberto em um BitFile, sem abrir um novo arquivo.
+ * * Necessário para reusar o mesmo FILE* após gravar o cabeçalho em modo byte puro,
+ * permitindo que a escrita/leitura bit a bit continue a partir da posição atual do arquivo.
+ * * @param f    Ponteiro para o arquivo já aberto.
+ * @param modo  String determinando o modo ("rb" ou "wb").
+ * @return BitFile* Ponteiro para a estrutura de controle criada, ou NULL em caso de erro.
+ */
+BitFile *wrap_bit_file(FILE *f, const char *modo); // envolve um FILE* ja aberto em um BitFile sem abrir um novo arquivo, necessario para reusar o mesmo FILE* apos gravar o cabecalho em modo byte puro
+
+/**
+ * @brief [NOVO] Retorna o FILE* interno do BitFile.
+ * * Usado pelo ler_header para ler o cabeçalho com fgetc antes da leitura bit a bit.
+ * * @param bf Ponteiro para a estrutura de controle do arquivo de bits.
+ * @return FILE* Ponteiro para o arquivo interno encapsulado pelo BitFile.
+ */
+FILE *get_arquivo(BitFile *bf); // retorna o FILE* interno do BitFile, usado pelo ler_header para ler o cabecalho com fgetc antes da leitura bit a bit
 
 /**
  * @brief Escreve um único bit (0 ou 1) no arquivo.

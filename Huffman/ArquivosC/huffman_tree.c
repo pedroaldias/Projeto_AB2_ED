@@ -150,7 +150,9 @@ void liberar_dicionario(char *dicionario[256])
     }
 }
 
-// função que transforma uma arvore em uma sequencia linear de bytes, serializando nossa arvore
+// [ALTERADO] função que transforma uma arvore em uma sequencia linear de bytes, serializando nossa arvore
+// agora segue o formato do professor: no interno = '*', folha comum = byte direto, folha especial (* ou \) = '\' + byte
+// isso garante compatibilidade com o formato esperado, ex: **CB***FEDA (sem escape para letras comuns)
 void serializar_arvore(NodeHuffman *raiz, unsigned char *buf, int *pos)
 {
     if(raiz == NULL) return;
@@ -164,15 +166,19 @@ void serializar_arvore(NodeHuffman *raiz, unsigned char *buf, int *pos)
     }
     else
     {
-        // no folha grava: '\' + simbolo de representação
-        // se o simbolo for \ ou *, se faz necessario o escape de '\' antes para definir com sendo um byte real, para n criar confusão
-        // com marcador de no interno na leitura
-        buf[(*pos)++] = '\\';
-        buf[(*pos)++] = raiz->caractere; // grava o byte indepente de qual for
+        // [ALTERADO] no folha: so usa escape '\' se o byte for '*' ou '\', caso contrario grava direto
+        // isso segue o formato do professor onde folhas comuns nao levam escape
+        // exemplo: folha 'A' vira apenas 'A', folha '*' vira '\*', folha '\' vira '\\'
+        if(raiz->caractere == '*' || raiz->caractere == '\\')
+        {
+            buf[(*pos)++] = '\\'; // escape necessario para nao confundir com marcador de no interno
+        }
+        buf[(*pos)++] = raiz->caractere; // grava o byte da folha
     }
 }
 
-// função que pega uma serialização linear de arvore e transforma novamente em uma arvore de huffman atraves da recurssão
+// [ALTERADO] função que pega uma serialização linear de arvore e transforma novamente em uma arvore de huffman atraves da recurssão
+// agora trata corretamente os tres casos: no interno '*', folha com escape '\', e folha direta (byte comum)
 NodeHuffman *desserializar_arvore(const unsigned char *buf, int *pos, int tamanho)
 {
     if(*pos >= tamanho) return NULL;
@@ -181,7 +187,7 @@ NodeHuffman *desserializar_arvore(const unsigned char *buf, int *pos, int tamanh
 
     if(byte == '*')
     {
-        // o byte atual representa um no interno
+        // o byte atual representa um no interno, reconstroi recursivamente os filhos
         NodeHuffman *no = criar_no(0, 0);
         no->esq = desserializar_arvore(buf, pos, tamanho);
         no->dir = desserializar_arvore(buf, pos, tamanho);
@@ -189,14 +195,17 @@ NodeHuffman *desserializar_arvore(const unsigned char *buf, int *pos, int tamanh
     }
     else if(byte == '\\')
     {
-        // o byte atual é uma folha
+        // o byte atual e um escape, o proximo byte e o simbolo real da folha (pode ser '*' ou '\')
         if(*pos >= tamanho) return NULL;
         unsigned char simbolo = buf[(*pos)++];
         return criar_no(simbolo, 0);
     }
-
-    // caso ocorra um byte inesperado que n caia em nenhum dos casos anteriores sendo um arquivo corrompido
-    return NULL;
+    else
+    {
+        // [ALTERADO] byte comum: e uma folha direta, sem escape, o proprio byte e o simbolo
+        // esse caso nao existia antes pois antes toda folha tinha escape
+        return criar_no(byte, 0);
+    }
 }
 
 // função para desalocar da memoria a arvore huffman

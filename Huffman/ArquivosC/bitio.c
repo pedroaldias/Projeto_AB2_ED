@@ -35,6 +35,31 @@ BitFile *open_bit_file(const char *nome_arquivo, const char *modo)
     return bf;
 }
 
+// [NOVO] envolve um FILE* ja aberto em um BitFile sem abrir um novo arquivo
+// necessario para reusar o mesmo FILE* apos gravar o cabecalho em modo byte puro
+BitFile *wrap_bit_file(FILE *f, const char *modo)
+{
+    if(f == NULL) return NULL;
+
+    BitFile *bf = (BitFile *)malloc(sizeof(BitFile));
+    if(bf == NULL) return NULL;
+
+    bf->arquivo = f;
+    bf->buffer = 0;
+    bf->modo = modo[0];
+    bf->contador_bits = (modo[0] == 'r') ? 8 : 0;
+
+    return bf;
+}
+
+// [NOVO] retorna o FILE* interno do BitFile para permitir leitura em modo byte puro
+// usado pelo ler_header para ler o cabecalho com fgetc antes de iniciar a leitura bit a bit
+FILE *get_arquivo(BitFile *bf)
+{
+    if(bf == NULL) return NULL;
+    return bf->arquivo;
+}
+
 // função para escrever bit a bit o buffer, representação do byte em formação, um byte e cada vez que completa um byte joga ele para nosso arquivo
 void write_bit(BitFile *bf, int bit)
 {

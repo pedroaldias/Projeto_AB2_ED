@@ -2,8 +2,8 @@
 #define HEADER_H
 
 #include <stdio.h>
-#include "huffman_tree.h"
-#include "bitio.h"
+#include "../Headers/bitio.h"
+#include "../Headers/huffman_tree.h"
 
 /**
  * @brief Estrutura opaca do cabeçalho do arquivo .huff.
@@ -24,21 +24,25 @@ typedef struct header Header; // struct opaca para so ter acesso as propriedades
 Header *criar_header(NodeHuffman *raiz, int lixo); // função para criar um header de uma arvore huffman e a quantidade de bits lixo no ulitmo byte de dados(que foram usados para completar)
 
 /**
- * @brief Escreve o cabeçalho no início do arquivo compactado.
+ * @brief [ALTERADO] Escreve o cabeçalho diretamente em modo byte via FILE*.
  *
- * Grava 2 bytes de metadados seguidos pelos bytes da árvore serializada.
- * Usa big-endian para garantir interoperabilidade entre arquiteturas.
+ * Grava: byte1 = (lixo << 5) | (tam_arvore >> 8), byte2 = tam_arvore & 0xFF,
+ * seguido dos bytes da árvore serializada diretamente via fputc.
  *
  * @param h  Ponteiro para o cabeçalho.
- * @param f  Arquivo de destino aberto em modo binário ("wb").
+ * @param f  Arquivo de destino aberto em modo binário ("wb"), em modo byte puro.
  */
-void escrever_header(Header *h, BitFile *bf); // escreve um header dentro de um arquivo que sera nosso arquivo de bytes compactado
+void escrever_header(Header *h, FILE *f); // escreve um header dentro de um arquivo que sera nosso arquivo de bytes compactado
 
 /**
  * @brief Lê o cabeçalho de um arquivo compactado e reconstrói a árvore.
  *
- * @param f        Arquivo compactado aberto em modo binário ("rb").
- * @param lixo_out Ponteiro onde será gravada a quantidade de bits de lixo.
+ * Usa get_arquivo(bf) internamente para ler o cabeçalho em modo byte puro,
+ * antes de iniciar a leitura bit a bit dos dados compactados.
+ *
+ * @param bf            Arquivo compactado encapsulado em BitFile.
+ * @param lixo_out      Ponteiro onde será gravada a quantidade de bits de lixo.
+ * @param tam_arvore_out Ponteiro onde será gravado o tamanho da árvore serializada.
  * @return NodeHuffman* Raiz da árvore reconstruída, ou NULL em caso de erro.
  */
 NodeHuffman *ler_header(BitFile *bf, int *lixo_out, int *tam_arvore_out); // captura todas as informações do header de um arquivo compactado seja o tamanho do lixo, tamanho da arvore e sua serialização, reconstruindo ela
