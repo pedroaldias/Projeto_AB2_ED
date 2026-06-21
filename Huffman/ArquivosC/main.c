@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
             char *nome_arquivo = (ultimo_separador != NULL) ? ultimo_separador + 1 : origem;
 
             int tam_nome = strlen(nome_arquivo) - 5; // remove o .huff
-            const char *pasta_saida = "Arquivos_resultado\\";
+            const char *pasta_saida = "Arquivos_Resultados\\";
             int tam_destino = strlen(pasta_saida) + tam_nome + 1;
 
             destino = (char *)malloc(tam_destino * sizeof(char));
