@@ -5,17 +5,16 @@
 #include "../Headers/huffman_tree.h"
 #include "../Headers/heap.h"
 
-// compara a frequencai entre dois nós do tipo NodeHuffman
+// compara a frequencia entre dois nós do tipo NodeHuffman
 int comparar_nos_huffman(void *a, void *b)
 {
-    // escreve os void como NodeHuffman para nossa função
     NodeHuffman *noA = (NodeHuffman *)a;
     NodeHuffman *noB = (NodeHuffman *)b;
 
-    return (noA->frequencia - noB->frequencia); // caso noB seja mais frequente o retorno é <0, se noA for maior o retorno sera >0, se forem iguais o retorno é zero
+    return (noA->frequencia - noB->frequencia); // <0 se noA for menor, >0 se for maior, 0 se iguais
 }
 
-// criamos um nó do tipo huffman isolado inicialmente apenas com seu caractere e frequencia
+// cria um nó isolado com seu caractere e frequencia
 static NodeHuffman *criar_no(unsigned char caractere, int frequencia)
 {
     NodeHuffman *novo_no = (NodeHuffman *)malloc(sizeof(NodeHuffman));
@@ -25,7 +24,6 @@ static NodeHuffman *criar_no(unsigned char caractere, int frequencia)
         exit(1);
     }
 
-    // defini as caracteres de um nó isolado com os parametros passados
     novo_no->caractere = caractere;
     novo_no->frequencia = frequencia;
     novo_no->esq = NULL;
@@ -34,45 +32,38 @@ static NodeHuffman *criar_no(unsigned char caractere, int frequencia)
     return novo_no;
 }
 
-// função que ira construir nossa arvore huffman propriamente dita
+// constroi a arvore de huffman a partir da tabela de frequencias
 NodeHuffman *construir_a_arvore(const int frequencias[])
 {
-    // 1. primeiro quantos caracteres/bytes distintos possuimos , todo tipo de arquivo é formado por umas combinação ou nao de no maximo 256 bytes distintos
-    // sao 256 bytes distintos no maximo para todo arquivo pois fisicamente o computador so le 1 byte por vez formado por 8 bits que por sua vez possuem 2 estados possiveis logo
-    // 2^8 possibilidades para formar um byte, sendo assim no maximo 256 bytes distintos em qualquer arquivo
+    // conta quantos bytes distintos existem (no maximo 256, pois 2^8 possibilidades)
     int bytes_unicos = 0;
     for(int i = 0; i < 256; i++)
     {
         if(frequencias[i] > 0) bytes_unicos++;
     }
 
-    if(bytes_unicos == 0) return NULL; 
+    if(bytes_unicos == 0) return NULL;
 
-    // 2. cria uma heap min generica passando nossa função comparadora, nao adicionamos nada na heap ainda, apenas passamos o tamanho limite da heap min e a função comparadora
+    // cria a heap min generica com a função comparadora de frequencias
     Heap *heap = criar_heap(bytes_unicos, comparar_nos_huffman);
 
-    // 3. Monta os nós folha iniciais e joga eles dentro da heap min, cria o nós dos bytes e coloca eles na heap
+    // cria os nós folha de cada byte presente e insere na heap
     for(int i = 0; i < 256; i++)
     {
         if(frequencias[i] > 0)
         {
-            // 1, 00000001
-            // crio um no do tipo huffman passando o 
-
-            // passo o i como seu equivalente em 1 byte no codigo ascii e isso nao viola o huffman essa operação é apenas para o codigo 
-            // ter uma referencia do que isso é em ascii para depois forma o codigo huffman equivalente
-            // e apesar de usar ascii para guardar o i ele pode mapear bytes de musica e imagens, isso é apenas uma questao de ponto de referencia para o codigo e nao do byte em si
+            // usa o i como referencia ascii apenas para identificar o byte; nao viola o huffman
             NodeHuffman *folha = criar_no((unsigned char)i, frequencias[i]);
 
-            inserir_heap(heap, folha); // coloca cada folha com frequencia maior que zero na heap min
+            inserir_heap(heap, folha);
         }
     }
 
-    //caso o arquivo tenha 1 unico byte distinto precisa ser tratado como um caso especifal
+    // caso especial: apenas um byte distinto no arquivo
     if(tamanho_heap(heap) == 1)
     {
-        // caso tenha um no unico eu crio ele retirando da heap e crio um no pai de byte 0 com a frequencai desse unico sendo um sintetico e faço o unico estar a esquerda,
-        // sendo sempre ignorado e caindo para a compressão na direção do 0, logo garantido que na oacha segmantaion fault na descompressao
+        // cria um pai sintetico (byte 0) com o unico no a esquerda, garantindo
+        // que a compressao sempre caminhe para 0 e evitando segfault na descompressao
         NodeHuffman *unico = (NodeHuffman *) extrair_min_heap(heap);
         NodeHuffman *pai = criar_no(0, unico->frequencia);
         pai->esq = unico;
@@ -80,54 +71,43 @@ NodeHuffman *construir_a_arvore(const int frequencias[])
         return pai;
     }
 
-    // 4. laço principal do algoritmo de huffman, o que realmente monta a arvore na memoria
-    while(tamanho_heap(heap) > 1) // realiza essa operação ate sobrar um unico no na heap que sera a raiz da arvore
+    // laço principal: funde os dois nós de menor frequencia até sobrar so a raiz
+    while(tamanho_heap(heap) > 1) // O(n) pois cada iteração remove 2 e insere 1
     {
-        // como retiramos 2 por vez mas adicionamos um novo no na heap logo dps entao esse while se torna O(n)
-
-        // extrai os dois nós de menor frequencia da heap, apos cada extração o sift_down age para valdiar novamente a heap min
+        // extrai os dois nós de menor frequencia
         NodeHuffman *esq = (NodeHuffman *) extrair_min_heap(heap);
         NodeHuffman *dir = (NodeHuffman *) extrair_min_heap(heap);
 
-        // cria um nó pai sintetico composto pela soma das frequencias dos filhos
-        NodeHuffman *pai = criar_no(0, esq->frequencia + dir->frequencia); // passei a referencia do nó sintetico como sendo o meu '*' e somei a frequencia dos filhos para passar pro pai
-        // conectando o pai aos filhos
+        // cria o nó pai sintetico com a soma das frequencias dos filhos
+        NodeHuffman *pai = criar_no(0, esq->frequencia + dir->frequencia);
         pai->esq = esq;
         pai->dir = dir;
 
-        // insere novamente o no pai na heap(sif_up age aqui procurando o local ideal para estar a partir do ultimo indice valido)
+        // reinsere o pai na heap, formando a arvore a cada iteração
         inserir_heap(heap, pai);
-        // ao reincerir o pai na heap nos temos um ponteiro agora que possui esquerda e direita ou seja fazendo 
-        // esse processo repetidas vezes inevitavelmente ja estamos formando as conexões da nossa arvorecada vez que tiramos e reinserimos da nossa heap min
     }
 
+    // o ultimo nó restante na heap é a raiz da arvore
+    NodeHuffman *raiz = (NodeHuffman *) extrair_min_heap(heap);
 
-    // 5. o ultimo nó que sobrou na nossa heap sera justamente a raiz da nossa arvore huffman
-    NodeHuffman *raiz = (NodeHuffman *) extrair_min_heap(heap); // so existe um elemento na heap min neste momento
-
-    // 6. desaloca a nossa heap para evitar memory leak
+    // desaloca a heap, ja nao e mais necessaria
     destruir_heap(heap);
 
     return raiz;
 }
 
+// constroi o codigo huffman de cada byte distinto lido
 void gerar_codigo_huffman(NodeHuffman *raiz, char *dicionario[256], char *caminho, int profundidade)
 {
     if(raiz == NULL) return;
 
-    // verificação que se estamos numa folha logo o no huffman atual nao possuo esquerda nem direita
-    // desse modo verificamos uma folha idenpende do caractere de saida podendo ser qualquer byte do arquivo original, incluindo '*', '\', '#'
+    // folha: nao possui esquerda nem direita, qualquer byte pode estar aqui (incluindo '*' e '\')
     if(raiz->esq == NULL && raiz->dir == NULL)
     {
         caminho[profundidade] = '\0';
-
         dicionario[(unsigned char)raiz->caractere] = strdup(caminho);
-        // faço o cast para unsigned char apenas por questao de documentação para quem ler pois o caractere do tipo NodeHuffman ja é um unsigned char
-
         return;
     }
-
-    // a partir daqui eu faço todos os caminhos possiveis da minha arvore e reescrevendo o caminho quando volto de uma folha
 
     // desce para esquerda acrescentando '0' no caminho
     caminho[profundidade] = '0';
@@ -138,6 +118,7 @@ void gerar_codigo_huffman(NodeHuffman *raiz, char *dicionario[256], char *caminh
     gerar_codigo_huffman(raiz->dir, dicionario, caminho, profundidade + 1);
 }
 
+// destroi apenas a estrutura do dicionario
 void liberar_dicionario(char *dicionario[256])
 {
     for(int i = 0; i < 256; i++)
@@ -145,19 +126,17 @@ void liberar_dicionario(char *dicionario[256])
         if(dicionario[i] != NULL)
         {
             free(dicionario[i]);
-            dicionario[i] = NULL; // boa pratica para evitar ponteiro solto apos o free
+            dicionario[i] = NULL; // evita ponteiro solto apos o free
         }
     }
 }
 
-// [ALTERADO] função que transforma uma arvore em uma sequencia linear de bytes, serializando nossa arvore
-// agora segue o formato do professor: no interno = '*', folha comum = byte direto, folha especial (* ou \) = '\' + byte
-// isso garante compatibilidade com o formato esperado, ex: **CB***FEDA (sem escape para letras comuns)
+// serializa a arvore em pré-ordem: no interno = '*', folha comum = byte direto,
+// folha especial ('*' ou '\') = '\' + byte (escape). Ex: **CB***FEDA
 void serializar_arvore(NodeHuffman *raiz, unsigned char *buf, int *pos)
 {
     if(raiz == NULL) return;
 
-    // no interno: grava como '*'
     if(raiz->esq != NULL || raiz->dir != NULL)
     {
         buf[(*pos)++] = '*';
@@ -166,19 +145,17 @@ void serializar_arvore(NodeHuffman *raiz, unsigned char *buf, int *pos)
     }
     else
     {
-        // [ALTERADO] no folha: so usa escape '\' se o byte for '*' ou '\', caso contrario grava direto
-        // isso segue o formato do professor onde folhas comuns nao levam escape
-        // exemplo: folha 'A' vira apenas 'A', folha '*' vira '\*', folha '\' vira '\\'
+        // so usa escape '\' se o byte for '*' ou '\'; demais folhas gravam direto
         if(raiz->caractere == '*' || raiz->caractere == '\\')
         {
-            buf[(*pos)++] = '\\'; // escape necessario para nao confundir com marcador de no interno
+            buf[(*pos)++] = '\\';
         }
-        buf[(*pos)++] = raiz->caractere; // grava o byte da folha
+        buf[(*pos)++] = raiz->caractere;
     }
 }
 
-// [ALTERADO] função que pega uma serialização linear de arvore e transforma novamente em uma arvore de huffman atraves da recurssão
-// agora trata corretamente os tres casos: no interno '*', folha com escape '\', e folha direta (byte comum)
+// desserializa o buffer linear de volta para a arvore, tratando nó interno '*',
+// folha com escape '\' e folha direta (byte comum)
 NodeHuffman *desserializar_arvore(const unsigned char *buf, int *pos, int tamanho)
 {
     if(*pos >= tamanho) return NULL;
@@ -187,7 +164,7 @@ NodeHuffman *desserializar_arvore(const unsigned char *buf, int *pos, int tamanh
 
     if(byte == '*')
     {
-        // o byte atual representa um no interno, reconstroi recursivamente os filhos
+        // nó interno: reconstroi recursivamente os filhos
         NodeHuffman *no = criar_no(0, 0);
         no->esq = desserializar_arvore(buf, pos, tamanho);
         no->dir = desserializar_arvore(buf, pos, tamanho);
@@ -195,28 +172,25 @@ NodeHuffman *desserializar_arvore(const unsigned char *buf, int *pos, int tamanh
     }
     else if(byte == '\\')
     {
-        // o byte atual e um escape, o proximo byte e o simbolo real da folha (pode ser '*' ou '\')
+        // escape: o proximo byte e o simbolo real da folha
         if(*pos >= tamanho) return NULL;
         unsigned char simbolo = buf[(*pos)++];
         return criar_no(simbolo, 0);
     }
     else
     {
-        // [ALTERADO] byte comum: e uma folha direta, sem escape, o proprio byte e o simbolo
-        // esse caso nao existia antes pois antes toda folha tinha escape
+        // byte comum: folha direta, sem escape
         return criar_no(byte, 0);
     }
 }
 
-// função para desalocar da memoria a arvore huffman
+// desaloca a arvore em pos-ordem (filhos antes do pai)
 void destruir_arvore_huffman(NodeHuffman *raiz)
 {
     if(raiz == NULL) return;
-    
-    // liberação da memoria em pos-ordem: primeiro os filhos depois o pai chamando recursivamente
+
     destruir_arvore_huffman(raiz->esq);
     destruir_arvore_huffman(raiz->dir);
-    // pos-ordem pois ele chama ate a aesuqerda e so libera caso ele ande na direita e tbm encontre null se nao ele continua empilhando chamadas recursivas
 
     free(raiz);
 }

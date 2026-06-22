@@ -12,7 +12,7 @@ struct decompressor
     char *destino;
 };
 
-// função para criar um onejto decompressor recebendo o arquivo comprimido na origem e o destino final vai ter o resultado da descompressao
+// cria o decompressor duplicando os nomes dos arquivos de origem e destino
 Decompressor *criar_decompressor(const char *arquivo_origem, const char *arquivo_destino)
 {
     if(arquivo_origem == NULL || arquivo_destino == NULL) return NULL;
@@ -20,47 +20,40 @@ Decompressor *criar_decompressor(const char *arquivo_origem, const char *arquivo
     Decompressor *d = (Decompressor *)malloc(sizeof(Decompressor));
     if(d == NULL) return NULL;
 
-    // Duplica as strings dos nomes dos arquivos evitando que ao mexer no ponteiro posteriormente cause esse nessa função pois é uma duplicata da string inteira e nao uma copia do endereço
+    // duplica as strings para o decompressor nao depender dos ponteiros originais
     d->origem = strdup(arquivo_origem);
-    d->destino = strdup(arquivo_destino); 
+    d->destino = strdup(arquivo_destino);
 
     return d;
 }
 
-// função que realiza todo o processo central e controle de descomprimir um arquivo compactado e jogar o resultado da descompressão em um arquivo destino atraves de ferramentas ja implementadas
-// assim abirindo arquivo compactado fazendo a leitura de seu cabeçalho e recuperando as frequencais dos bytes unicos, extraindo ponteiro da header do arquivo compactado,
-// reconstruindo a arvore huffman atraves das frequencias lidas, abrindo o arquivo de destino e tmb contando qual a quantidade de bytes a serem escritos nesse arquivo, decodificar o codigo
-// de cada byte unico atraves da navegação na nossa arvore huffman e depositando o codigo ao achar uma folha, por fim limpar toda memoria alocada e fechar o arquivo origem
+// executa a descompressao: le o header, reconstroi a arvore e decodifica os bits ate o destino
 int executar_decompressao(Decompressor *d)
 {
     if(d == NULL) return 0;
 
-    // PASSO 1: Abrir o arquivo compactado para leitura dos bits passando como o modo de leitura na função open_bit_file
+    // PASSO 1: abre o arquivo compactado para leitura bit a bit
     BitFile *f_origem = open_bit_file(d->origem, "rb");
     if(f_origem == NULL) return 0;
 
-    // PASSO 2: Ler o cabeçalho e recuperando a arvore huffman e obtendo o numero de bits lixo
+    // PASSO 2: le o cabecalho, reconstruindo a arvore e obtendo o lixo
     int lixo = 0;
     int tam_arvore = 0;
-    // eu leio o header que esta no arquivo de byte e nessa função eu retorno um ponteiro do tipo arvore huffman,
-    // criando uma arvore huffman a partir da leitura do arquivo de bytes e obtenho o numero de bits lixo
     NodeHuffman *raiz_huffman = ler_header(f_origem, &lixo, &tam_arvore);
-    if(raiz_huffman == NULL) // arquivo corrompido fechar o arquivo e cancela o processo
+    if(raiz_huffman == NULL) // arquivo corrompido
     {
         close_bit_file(f_origem);
         return 0;
     }
 
-    // apos ler o reader e recuperar a arvore, o BitFIle ja esta posicionado no primeiro bit dos dados
-    // calcula o numero de bits uteis para saber o tamanho total do arquivo
+    // apos o header, o BitFile ja esta posicionado no primeiro bit dos dados;
+    // pega o tamanho total do arquivo para calcular quantos bytes sao de dados
     FILE *f_tam = fopen(d->origem, "rb");
     fseek(f_tam, 0, SEEK_END);
     long tam_total_bytes = ftell(f_tam);
     fclose(f_tam);
 
-    // agora possuindo o tamanho da arvore precisamos saber quantos butes o header ocupa para calcular a quantidadede bytes_dados
-    // header = 2 bytes fixos + tamanho_arvore bytes
-    // assim descobrimos o numero de bytes para os dados do arquivo e o numero de bits uteis
+    // header = 2 bytes fixos + tamanho_arvore bytes; o resto e dado comprimido
     int tam_header_bytes = 2 + tam_arvore;
     long bytes_dados = tam_total_bytes - tam_header_bytes;
     long long bits_uteis = ((bytes_dados * 8) - lixo);
@@ -72,33 +65,32 @@ int executar_decompressao(Decompressor *d)
         return 0;
     }
 
-    // PASSO 4: Abrir o arquivo de destino para gravar os bytes do arquivo de origem (wb, criando ou sobreescrevendo no arquivo destino os bytes do compactado)
+    // PASSO 4: abre o arquivo de destino para gravar os bytes decodificados
     FILE *f_destino = fopen(d->destino, "wb");
-    if(f_destino == NULL) // medida de proteção contra arquivos corrompidos
+    if(f_destino == NULL)
     {
         destruir_arvore_huffman(raiz_huffman);
         close_bit_file(f_origem);
         return 0;
     }
 
-    // PASSO 5: decodificar os codigos dos bytes atraves de caminhar na arvore e nos sabemos quando devemos parar comparando o numero de bytes escritos com o total
-    NodeHuffman *atual = raiz_huffman; // cria uma copia da raiz para caminhar sem alterar a raiz
+    // PASSO 5: decodifica caminhando na arvore bit a bit ate atingir bits_uteis
+    NodeHuffman *atual = raiz_huffman; // copia da raiz para caminhar sem alterar a raiz
     long long bits_lidos = 0;
 
-    // Só se mantem no loop se ainda houver bytes para decodificar
     while(bits_lidos < bits_uteis)
     {
-        int bit = read_bit(f_origem); // lê um byte do arquivo compactado no passo de bit a bit dele
+        int bit = read_bit(f_origem);
         if(bit == -1)
         {
-            // medida de segurança caso o arquivo acabe antes de terminarmos de ler todos os bytes previstos (arquivos corrompidos)
+            // medida de seguranca contra arquivo corrompido
             break;
         }
 
-        bits_lidos++; // contando de bit em bit
+        bits_lidos++;
 
-        // Se o bit for 0, vai para esquerda se for 1 vai para direita caminhando na arvore ate encontrar uma folha e nao um no interno
-        if(atual->dir == NULL) atual = atual->esq; // força esquerda se a direita nao existe, solucionando o caso especial de um unico byte distinto
+        // 0 vai para esquerda, 1 vai para direita; sem direita forca esquerda (caso de byte unico)
+        if(atual->dir == NULL) atual = atual->esq;
         else if(bit == 1)
         {
             atual = atual->dir;
@@ -108,11 +100,11 @@ int executar_decompressao(Decompressor *d)
             atual = atual->esq;
         }
 
-        // Se encontramos um nó folha quer dizer que achamos um byte original do texto antes da compactação
-        if(atual->esq == NULL && atual->dir == NULL) // essa linha pode causar segmetaion fault dependendo de como é tratado arquivos com um unico byte distinto
+        // chegou numa folha: encontrou um byte original
+        if(atual->esq == NULL && atual->dir == NULL)
         {
-            fputc(atual->caractere, f_destino); // coloca o caractere do no folha no arquivo de destino apos descompatar
-            atual = raiz_huffman; // voltamos para raiz percorrendo outro caminho
+            fputc(atual->caractere, f_destino);
+            atual = raiz_huffman; // volta para a raiz
         }
     }
 
@@ -120,12 +112,12 @@ int executar_decompressao(Decompressor *d)
     fclose(f_destino);
     destruir_arvore_huffman(raiz_huffman);
     close_bit_file(f_origem);
-    
-    // se conseguimos escrever todos os bytes previsto logo descompactamos com sucesso
+
+    // sucesso se conseguimos ler exatamente os bits uteis previstos
     return (bits_lidos == bits_uteis);
 }
 
-// realiza a limpeza na memoria da estrutura do objeto descompactador sem apagar os dados usados
+// destroi a estrutura do decompressor sem apagar os dados usados
 void destruir_decompressor(Decompressor *d)
 {
     if(d != NULL)
