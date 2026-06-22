@@ -39,12 +39,7 @@ Com os suspeitos identificados, calculamos o score de risco. A fórmula pondera 
 JOINs: operação que comnina linhas de duas ou mais tabela com base em uma coluna em comum
 
 
-Slide 9 (~1min30s)
-
-Além dos algoritmos de detecção, existe uma abordagem de otimização inspirada na natureza: o ACO, ou Ant Colony Optimization. A ideia vem do comportamento das formigas reais — elas depositam feromônios no solo para sinalizar caminhos promissores. Computacionalmente, uma colônia de N formigas virtuais parte de um nó inicial e percorre o grafo camada por camada, de forma semelhante a uma BFS. A cada ciclo, as formigas escolhem nós com base em regras de transição de estado. No início, todos os caminhos têm a mesma preferência. Após múltiplos ciclos, o caminho que acumula mais feromônio revela o caminho/subgrafo de fraude mais provável — o padrão emerge de forma emergente, sem precisar ser programado explicitamente.
-
-
-Slide 10 (~1min20s)
+Slide 9 (~1min20s)
 
 À esquerda temos o modelo relacional — junções custosas, detecção tardia, inviável em tempo real, fraudes mascaradas como dívida comum. À direita, o banco de dados em grafo — navegação por ponteiros físicos via Index-Free Adjacency, detecção na criação da conta, complexidade linear O(V+E), e interceptação da fraude antes do prejuízo se efetivar. A transição para grafos não é uma preferência técnica — é uma necessidade operacional diante da escala e velocidade do crime financeiro organizado. Ao focar na relação entre os dados, e não nos registros isolados, as instituições conseguem agir antes que o dano seja consolidado.
 
